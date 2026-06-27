@@ -1,0 +1,17 @@
+title: بن مسحل - Satellite Master
+description: Chat, sun and peace
+theme: jekyll-theme-minimal
+github_url: https://github.com/wolfae311311-bot/BinMisehel
+
+# GitHub Pages settings
+markdown: kramdown
+highlighter: rouge
+plugins:
+  - jekyll-sitemaps
+
+# Custom domain
+domain: binmisehel.github.io
+
+# Build settings
+sass:
+  style: compressed
