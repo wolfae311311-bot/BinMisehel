@@ -9,6 +9,9 @@
           crossorigin="anonymous" referrerpolicy="no-referrer">
     <!-- خط Cairo -->
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- Firebase SDK 9 (compat mode) — الإصدار الصحيح مع المسار الكامل -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
         :root {
             --light-blue: #0ea5e9;
@@ -18,13 +21,6 @@
         }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Cairo', sans-serif; }
 
-        html, body {
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            padding: 0;
-        }
-
         body {
             background: var(--soft-blue);
             background-image:
@@ -32,12 +28,11 @@
                 url('https://images.pexels.com/photos/1018501/pexels-photo-1018501.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1');
             background-size: cover;
             background-position: center;
-            background-attachment: fixed;
+            height: 100vh;
             overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
         }
 
         #rain-container {
@@ -54,19 +49,18 @@
 
         #app {
             width: 95%; max-width: 480px; height: 92vh;
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(25px);
             border-radius: 40px; border: 5px solid white;
             display: flex; flex-direction: column;
             overflow: hidden; position: relative;
-            box-shadow: 0 30px 60px rgba(14, 165, 233, 0.3);
+            box-shadow: 0 30px 60px rgba(14, 165, 233, 0.2);
         }
 
         header {
             background: white; padding: 15px;
             display: flex; justify-content: space-between;
             align-items: center; border-bottom: 2px solid var(--soft-blue);
-            flex-shrink: 0;
         }
         .eye-box {
             width: 45px; height: 45px; border-radius: 50%;
@@ -120,19 +114,14 @@
             font-weight: 900; padding: 20px; border-radius: 20px;
             border: none; cursor: pointer; width: 100%; font-size: 26px;
             box-shadow: 0 10px 20px rgba(14, 165, 233, 0.3);
-            transition: 0.3s;
-        }
-        .btn-tafadal:active {
-            transform: scale(0.95);
         }
 
         nav {
             background: white;
             display: grid; grid-template-columns: repeat(5, 1fr);
             padding: 15px 0; border-top: 1px solid #f1f5f9;
-            flex-shrink: 0;
         }
-        nav div { cursor: pointer; text-align: center; color: #94a3b8; font-size: 12px; }
+        nav div { cursor: pointer; text-align: center; color: #94a3b8; }
         nav div.active-nav { color: var(--light-blue); }
 
         .sat-status {
@@ -149,17 +138,13 @@
 
         /* مؤشر الاتصال */
         #conn-status {
-            position: fixed; top: 10px; right: 10px;
-            background: #22c55e; color: white; padding: 8px 15px;
+            position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
+            background: #22c55e; color: white; padding: 5px 15px;
             border-radius: 20px; font-size: 11px; font-weight: bold;
             z-index: 9999; display: none; transition: 0.3s;
         }
         #conn-status.show { display: block; }
         #conn-status.error { background: #f43f5e; }
-
-        input, textarea {
-            font-family: 'Cairo', sans-serif;
-        }
     </style>
 </head>
 <body>
@@ -196,24 +181,24 @@
         <div id="p2" class="page">
             <h3 style="margin-bottom:20px; color: var(--dark-blue);">🏰 الشقة الابتكارية للغرف</h3>
             <div class="innovative-card" onclick="app.join('r1', 'المجلس العام')">
-                <i class="fas fa-home"></i><span>المجلس العام</span>
+                <i class="fas fa-home"></i>المجلس العام
             </div>
             <div class="innovative-card" onclick="app.join('r2', 'جناح VIP')">
-                <i class="fas fa-star"></i><span>جناح VIP الملكي</span>
+                <i class="fas fa-star"></i>جناح VIP الملكي
             </div>
             <div class="innovative-card" onclick="app.join('r3', 'مختبر التقنية')">
-                <i class="fas fa-flask"></i><span>مختبر التقنية</span>
+                <i class="fas fa-flask"></i>مختبر التقنية
             </div>
             <div class="innovative-card" onclick="app.join('r4', 'سوالف الورد')">
-                <i class="fas fa-leaf"></i><span>سوالف الورد</span>
+                <i class="fas fa-leaf"></i>سوالف الورد
             </div>
             <div class="innovative-card" style="border: 2px solid #f43f5e;"
                  onclick="app.join('admin', 'إدارة أغسطس')">
-                <i class="fas fa-user-shield" style="color:#f43f5e;"></i><span>إدارة أغسطس</span>
+                <i class="fas fa-user-shield" style="color:#f43f5e;"></i>إدارة أغسطس
             </div>
             <div class="innovative-card" style="border: 2px solid var(--gold); background: #fffbeb;"
                  onclick="app.join('boss', 'شقة بن مسحل')">
-                <i class="fas fa-couch" style="color:var(--gold);"></i><span>شقة بن مسحل المبتكرة</span>
+                <i class="fas fa-couch" style="color:var(--gold);"></i>شقة بن مسحل المبتكرة
             </div>
         </div>
 
@@ -230,7 +215,7 @@
                     onkeypress="if(event.key==='Enter') app.send()">
                 <button onclick="app.send()"
                     style="background:var(--light-blue); color:white; width:60px;
-                           border-radius:15px; border:none; cursor:pointer; font-size: 16px;">
+                           border-radius:15px; border:none; cursor:pointer;">
                     <i class="fas fa-paper-plane"></i>
                 </button>
             </div>
@@ -287,73 +272,19 @@
             databaseURL: "https://ala666-global-default-rtdb.firebaseio.com"
         };
 
-        // تحميل Firebase SDK بديل (في حالة عدم توفر الإصدار الأصلي)
-        async function initFirebase() {
-            try {
-                // محاولة استخدام Firebase إذا كان متوفراً
-                if (typeof firebase !== 'undefined' && !firebase.apps.length) {
-                    firebase.initializeApp(firebaseConfig);
-                    return firebase.database();
-                } else if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
-                    return firebase.database();
-                } else {
-                    // إذا لم يكن Firebase متوفراً، استخدم وسيط محلي
-                    console.warn('Firebase غير متوفر، استخدام وسيط محلي');
-                    return createLocalDatabase();
-                }
-            } catch (error) {
-                console.error('خطأ في تحميل Firebase:', error);
-                return createLocalDatabase();
-            }
+        // تهيئة Firebase بشكل آمن (تجنب التهيئة المزدوجة)
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
         }
-
-        // قاعدة بيانات محلية بديلة
-        function createLocalDatabase() {
-            return {
-                ref: (path) => ({
-                    on: (event, callback) => {
-                        // محاكاة الاتصال
-                        if (path === '.info/connected') {
-                            setTimeout(() => callback({val: () => true}), 500);
-                        }
-                        return callback;
-                    },
-                    off: () => {},
-                    set: (data) => Promise.resolve(),
-                    push: (data) => Promise.resolve({key: Math.random()}),
-                    remove: () => Promise.resolve(),
-                    onDisconnect: () => ({remove: () => Promise.resolve()}),
-                    orderByChild: (field) => ({
-                        equalTo: (value) => ({
-                            limitToLast: (num) => ({
-                                on: (event, callback) => {
-                                    return callback;
-                                },
-                                off: () => {}
-                            })
-                        })
-                    })
-                })
-            };
-        }
-
-        let db = null;
-
-        // تهيئة Firebase عند تحميل الصفحة
-        initFirebase().then(database => {
-            db = database;
-        }).catch(err => {
-            console.error('خطأ في التهيئة:', err);
-            db = createLocalDatabase();
-        });
+        const db = firebase.database();
 
         // ===== منطق التطبيق =====
         const app = {
             me: "",
             room: "r1",
             email: "wolfae5115111@gmail.com",
-            chatListener: null,
-            usersListener: null,
+            chatListener: null,   // مرجع المستمع الحالي للدردشة
+            usersListener: null,  // مرجع مستمع الأعضاء
 
             // إنشاء تأثير المطر
             init() {
@@ -370,26 +301,21 @@
                 this.watchConnection();
             },
 
-            // مراقبة حالة الاتصال
+            // مراقبة حالة الاتصال بـ Firebase
             watchConnection() {
-                if (!db) return;
-                try {
-                    const connRef = db.ref('.info/connected');
-                    const indicator = document.getElementById('sat-indicator');
-                    connRef.on('value', (snap) => {
-                        if (snap.val() === true) {
-                            indicator.innerHTML = '<i class="fas fa-signal"></i> متصل بالأقمار الصناعية';
-                            indicator.className = 'sat-status';
-                            this.showStatus('✅ متصل بالشبكة', false);
-                        } else {
-                            indicator.innerHTML = '<i class="fas fa-signal" style="opacity:0.3"></i> جاري إعادة الاتصال...';
-                            indicator.className = 'sat-status offline';
-                            this.showStatus('⚠️ انقطع الاتصال', true);
-                        }
-                    });
-                } catch (error) {
-                    console.error('خطأ في مراقبة الاتصال:', error);
-                }
+                const connRef = db.ref('.info/connected');
+                const indicator = document.getElementById('sat-indicator');
+                connRef.on('value', (snap) => {
+                    if (snap.val() === true) {
+                        indicator.innerHTML = '<i class="fas fa-signal"></i> متصل بالأقمار الصناعية';
+                        indicator.className = 'sat-status';
+                        this.showStatus('✅ متصل بالشبكة', false);
+                    } else {
+                        indicator.innerHTML = '<i class="fas fa-signal" style="opacity:0.3"></i> جاري إعادة الاتصال...';
+                        indicator.className = 'sat-status offline';
+                        this.showStatus('⚠️ انقطع الاتصال، جاري إعادة المحاولة...', true);
+                    }
+                });
             },
 
             // عرض إشعار مؤقت
@@ -403,8 +329,7 @@
             // التنقل بين الصفحات
             navTo(id) {
                 document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-                const page = document.getElementById(id);
-                if (page) page.classList.add('active');
+                document.getElementById(id).classList.add('active');
             },
 
             // الدخول
@@ -421,51 +346,42 @@
                 this.listenUsers();
             },
 
-            // تسجيل المستخدم
+            // تسجيل المستخدم في Firebase مع onDisconnect للتنظيف التلقائي
             registerUser() {
-                if (!db) return;
-                try {
-                    const userRef = db.ref('users/' + this.me);
-                    userRef.set({ online: true, sat_link: this.email, joined: Date.now() });
-                    userRef.onDisconnect().remove();
-                } catch (error) {
-                    console.error('خطأ في تسجيل المستخدم:', error);
-                }
+                const userRef = db.ref('users/' + this.me);
+                userRef.set({ online: true, sat_link: this.email, joined: Date.now() });
+                // حذف المستخدم تلقائياً عند قطع الاتصال
+                userRef.onDisconnect().remove();
             },
 
-            // الاستماع للأعضاء
+            // الاستماع لقائمة المستخدمين المتصلين
             listenUsers() {
-                if (!db) return;
-                try {
-                    if (this.usersListener) {
-                        db.ref('users').off('value', this.usersListener);
-                    }
-                    this.usersListener = db.ref('users').on('value', s => {
-                        const l = document.getElementById('ulist');
-                        l.innerHTML = "";
-                        const users = s.val();
-                        if (!users) {
-                            l.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:20px;">لا يوجد أعضاء متصلون</div>';
-                            return;
-                        }
-                        for (let name in users) {
-                            const isMe = name === this.me;
-                            l.innerHTML += `
-                                <div class="innovative-card">
-                                    <i class="fas fa-user-circle" style="color:${isMe ? 'var(--light-blue)' : '#94a3b8'}; font-size:24px;"></i>
-                                    <div>
-                                        <b>${this.escapeHtml(name)}</b> ${isMe ? '<span style="color:var(--light-blue); font-size:11px;">(أنت)</span>' : ''}
-                                        <div class="private-lock">🔒 خاص مقفل</div>
-                                    </div>
-                                </div>`;
-                        }
-                    });
-                } catch (error) {
-                    console.error('خطأ في الاستماع للأعضاء:', error);
+                if (this.usersListener) {
+                    db.ref('users').off('value', this.usersListener);
                 }
+                this.usersListener = db.ref('users').on('value', s => {
+                    const l = document.getElementById('ulist');
+                    l.innerHTML = "";
+                    const users = s.val();
+                    if (!users) {
+                        l.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:20px;">لا يوجد أعضاء متصلون حالياً</div>';
+                        return;
+                    }
+                    for (let name in users) {
+                        const isMe = name === this.me;
+                        l.innerHTML += `
+                            <div class="innovative-card">
+                                <i class="fas fa-user-circle" style="color:${isMe ? 'var(--light-blue)' : '#94a3b8'}; font-size:24px;"></i>
+                                <div>
+                                    <b>${name}</b> ${isMe ? '<span style="color:var(--light-blue); font-size:11px;">(أنت)</span>' : ''}
+                                    <div class="private-lock">🔒 خاص مقفل</div>
+                                </div>
+                            </div>`;
+                    }
+                });
             },
 
-            // الانضمام لغرفة
+            // الانضمام لغرفة دردشة
             join(id, name) {
                 this.room = id;
                 document.getElementById('rt-title').innerText = "📍 " + name;
@@ -474,31 +390,27 @@
                 this.listenChat();
             },
 
-            // الاستماع للرسائل
+            // الاستماع لرسائل الغرفة الحالية فقط (آخر 50 رسالة)
             listenChat() {
-                if (!db) return;
-                try {
-                    if (this.chatListener) {
-                        db.ref('global_sat').off('child_added', this.chatListener);
-                    }
-                    const chatRef = db.ref('global_sat')
-                        .orderByChild('r')
-                        .equalTo(this.room)
-                        .limitToLast(50);
-
-                    this.chatListener = chatRef.on('child_added', s => {
-                        const m = s.val();
-                        const w = document.getElementById('chat-window');
-                        const isSent = m.u === this.me;
-                        const msgEl = document.createElement('div');
-                        msgEl.className = 'msg ' + (isSent ? 'sent' : 'received');
-                        msgEl.innerHTML = `<b>${this.escapeHtml(m.u)}:</b> ${this.escapeHtml(m.t)}`;
-                        w.appendChild(msgEl);
-                        w.scrollTop = w.scrollHeight;
-                    });
-                } catch (error) {
-                    console.error('خطأ في الاستماع للرسائل:', error);
+                // إلغاء المستمع السابق لتجنب التكرار
+                if (this.chatListener) {
+                    db.ref('global_sat').off('child_added', this.chatListener);
                 }
+                const chatRef = db.ref('global_sat')
+                    .orderByChild('r')
+                    .equalTo(this.room)
+                    .limitToLast(50);
+
+                this.chatListener = chatRef.on('child_added', s => {
+                    const m = s.val();
+                    const w = document.getElementById('chat-window');
+                    const isSent = m.u === this.me;
+                    const msgEl = document.createElement('div');
+                    msgEl.className = 'msg ' + (isSent ? 'sent' : 'received');
+                    msgEl.innerHTML = `<b>${this.escapeHtml(m.u)}:</b> ${this.escapeHtml(m.t)}`;
+                    w.appendChild(msgEl);
+                    w.scrollTop = w.scrollHeight;
+                });
             },
 
             // إرسال رسالة
@@ -507,39 +419,29 @@
                 const text = i.value.trim();
                 if (!text) return;
                 if (!this.me) {
-                    alert('يرجى تسجيل الدخول أول��ً');
+                    alert('يرجى تسجيل الدخول أولاً');
                     return;
                 }
-                if (!db) {
-                    alert('الاتصال غير متوفر');
-                    return;
-                }
-                try {
-                    db.ref('global_sat').push({
-                        u: this.me,
-                        t: text,
-                        r: this.room,
-                        ts: Date.now(),
-                        sat: true
-                    }).catch(err => {
-                        this.showStatus('❌ فشل الإرسال', true);
-                    });
-                    i.value = "";
-                } catch (error) {
-                    console.error('خطأ في الإرسال:', error);
-                }
+                db.ref('global_sat').push({
+                    u: this.me,
+                    t: text,
+                    r: this.room,
+                    ts: Date.now(),
+                    sat: true
+                }).catch(err => {
+                    this.showStatus('❌ فشل إرسال الرسالة: ' + err.message, true);
+                });
+                i.value = "";
             },
 
             // تسجيل الخروج
             logout() {
-                if (this.me && db) {
-                    try {
-                        if (this.chatListener) db.ref('global_sat').off('child_added', this.chatListener);
-                        if (this.usersListener) db.ref('users').off('value', this.usersListener);
-                        db.ref('users/' + this.me).remove();
-                    } catch (error) {
-                        console.error('خطأ في تسجيل الخروج:', error);
-                    }
+                if (this.me) {
+                    // إلغاء المستمعين
+                    if (this.chatListener) db.ref('global_sat').off('child_added', this.chatListener);
+                    if (this.usersListener) db.ref('users').off('value', this.usersListener);
+                    // حذف المستخدم من القائمة
+                    db.ref('users/' + this.me).remove();
                     this.me = "";
                 }
                 document.getElementById('b-nav').style.display = 'none';
@@ -547,7 +449,7 @@
                 this.navTo('p1');
             },
 
-            // تنظيف HTML
+            // تنظيف HTML لمنع XSS
             escapeHtml(text) {
                 const div = document.createElement('div');
                 div.appendChild(document.createTextNode(text));
@@ -555,22 +457,8 @@
             }
         };
 
-        // بدء التطبيق عند تحميل الصفحة
-        window.addEventListener('DOMContentLoaded', () => {
-            app.init();
-        });
-
-        // تحميل Firebase SDK
-        (function() {
-            const script1 = document.createElement('script');
-            script1.src = 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js';
-            script1.onload = function() {
-                const script2 = document.createElement('script');
-                script2.src = 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js';
-                document.body.appendChild(script2);
-            };
-            document.body.appendChild(script1);
-        })();
+        // بدء التطبيق
+        app.init();
     </script>
 </body>
 </html>
