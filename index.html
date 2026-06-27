@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>بن مسحل - Satellite Master</title>
+    <!-- Font Awesome للأيقونات -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+          crossorigin="anonymous" referrerpolicy="no-referrer">
+    <!-- خط Cairo -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- Firebase SDK 9 (compat mode) — الإصدار الصحيح مع المسار الكامل -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <style>
+        :root {
+            --light-blue: #0ea5e9;
+            --soft-blue: #e0f2fe;
+            --gold: #f59e0b;
+            --dark-blue: #0369a1;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Cairo', sans-serif; }
+
+        body {
+            background: var(--soft-blue);
+            background-image:
+                linear-gradient(rgba(224, 242, 254, 0.7), rgba(224, 242, 254, 0.7)),
+                url('https://images.pexels.com/photos/1018501/pexels-photo-1018501.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1');
+            background-size: cover;
+            background-position: center;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #rain-container {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -1; pointer-events: none;
+        }
+        .drop {
+            position: absolute; background: var(--light-blue);
+            width: 2px; height: 15px;
+            animation: fall 0.7s linear infinite; opacity: 0.5;
+        }
+        @keyframes fall { to { transform: translateY(110vh); } }
+
+        #app {
+            width: 95%; max-width: 480px; height: 92vh;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(25px);
+            border-radius: 40px; border: 5px solid white;
+            display: flex; flex-direction: column;
+            overflow: hidden; position: relative;
+            box-shadow: 0 30px 60px rgba(14, 165, 233, 0.2);
+        }
+
+        header {
+            background: white; padding: 15px;
+            display: flex; justify-content: space-between;
+            align-items: center; border-bottom: 2px solid var(--soft-blue);
+        }
+        .eye-box {
+            width: 45px; height: 45px; border-radius: 50%;
+            border: 3px solid var(--light-blue); background: #000;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        .page {
+            display: none; padding: 20px; flex: 1;
+            overflow-y: auto; flex-direction: column;
+            animation: slideUp 0.4s ease-out;
+        }
+        .active { display: flex; }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .innovative-card {
+            background: white; padding: 20px; border-radius: 25px;
+            margin-bottom: 12px; border: 1px solid #bae6fd;
+            cursor: pointer; display: flex; align-items: center; gap: 15px;
+            transition: 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        }
+        .innovative-card:hover, .innovative-card:active {
+            transform: scale(1.03); background: var(--light-blue); color: white;
+        }
+
+        #chat-window {
+            flex: 1; background: rgba(255,255,255,0.5);
+            border-radius: 25px; padding: 15px;
+            overflow-y: auto; display: flex;
+            flex-direction: column; gap: 10px;
+            border: 1px solid white; min-height: 200px;
+        }
+        .msg {
+            padding: 10px 15px; border-radius: 20px;
+            max-width: 80%; font-size: 14px; word-break: break-word;
+        }
+        .sent {
+            background: var(--light-blue); color: white;
+            align-self: flex-start;
+        }
+        .received {
+            background: white; color: var(--dark-blue);
+            align-self: flex-end; border: 1px solid #e0f2fe;
+        }
+
+        .btn-tafadal {
+            background: var(--light-blue); color: white;
+            font-weight: 900; padding: 20px; border-radius: 20px;
+            border: none; cursor: pointer; width: 100%; font-size: 26px;
+            box-shadow: 0 10px 20px rgba(14, 165, 233, 0.3);
+        }
+
+        nav {
+            background: white;
+            display: grid; grid-template-columns: repeat(5, 1fr);
+            padding: 15px 0; border-top: 1px solid #f1f5f9;
+        }
+        nav div { cursor: pointer; text-align: center; color: #94a3b8; }
+        nav div.active-nav { color: var(--light-blue); }
+
+        .sat-status {
+            font-size: 10px; color: #22c55e; font-weight: bold;
+            text-align: center; margin-bottom: 10px;
+            display: flex; align-items: center; justify-content: center; gap: 5px;
+        }
+        .sat-status.offline { color: #f43f5e; }
+
+        .private-lock {
+            color: #f43f5e; font-size: 10px;
+            margin-top: 5px; font-weight: bold;
+        }
+
+        /* مؤشر الاتصال */
+        #conn-status {
+            position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
+            background: #22c55e; color: white; padding: 5px 15px;
+            border-radius: 20px; font-size: 11px; font-weight: bold;
+            z-index: 9999; display: none; transition: 0.3s;
+        }
+        #conn-status.show { display: block; }
+        #conn-status.error { background: #f43f5e; }
+    </style>
+</head>
+<body>
+    <div id="conn-status"></div>
+    <div id="rain-container"></div>
+    <div id="app">
+        <header>
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div class="eye-box">
+                    <svg fill="white" viewBox="0 0 24 24" width="28">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-1.48.41-2.86 1.12-4.06.4-.68.91-1.28 1.51-1.78.36.32.74.61 1.16.86C7.3 7.82 7 8.87 7 10c0 2.76 2.24 5 5 5s5-2.24 5-5c0-1.13-.3-2.18-.79-3.08.42-.25.8-.54 1.16-.86.6.5 1.11 1.1 1.51 1.78.71 1.2 1.12 2.58 1.12 4.06 0 4.41-3.59 8-8 8zm3.5-10c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5.67-1.5 1.5-1.5 1.5.67 1.5 1.5zm-7 0c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5.67-1.5 1.5-1.5 1.5.67 1.5 1.5z"/>
+                    </svg>
+                </div>
+                <div style="font-weight:900; font-size:18px; color:var(--dark-blue);">بن مسحل</div>
+            </div>
+            <i class="fas fa-satellite" style="color:var(--light-blue); font-size: 20px;"></i>
+        </header>
+
+        <!-- صفحة الدخول -->
+        <div id="p1" class="page active" style="text-align:center; justify-content:center;">
+            <div style="margin-bottom: 20px; font-weight: 900; font-size: 35px; color: var(--dark-blue);">بن مسحل</div>
+            <p style="margin-bottom:10px; color: var(--light-blue); font-weight: 700;">❀ إمبراطورية الورد الأزرق المزخرفة ❀</p>
+            <div class="sat-status" id="sat-indicator">
+                <i class="fas fa-signal"></i> جاري الاتصال بالأقمار الصناعية...
+            </div>
+            <input type="text" id="uname" placeholder="اُكتب اسمك للمباشرة..."
+                style="padding:20px; width:90%; border-radius:20px; border:2px solid #bae6fd;
+                       margin-bottom:20px; text-align:center; font-size: 18px;"
+                onkeypress="if(event.key==='Enter') app.enter()">
+            <button class="btn-tafadal" onclick="app.enter()">تفضل</button>
+        </div>
+
+        <!-- صفحة الغرف -->
+        <div id="p2" class="page">
+            <h3 style="margin-bottom:20px; color: var(--dark-blue);">🏰 الشقة الابتكارية للغرف</h3>
+            <div class="innovative-card" onclick="app.join('r1', 'المجلس العام')">
+                <i class="fas fa-home"></i>المجلس العام
+            </div>
+            <div class="innovative-card" onclick="app.join('r2', 'جناح VIP')">
+                <i class="fas fa-star"></i>جناح VIP الملكي
+            </div>
+            <div class="innovative-card" onclick="app.join('r3', 'مختبر التقنية')">
+                <i class="fas fa-flask"></i>مختبر التقنية
+            </div>
+            <div class="innovative-card" onclick="app.join('r4', 'سوالف الورد')">
+                <i class="fas fa-leaf"></i>سوالف الورد
+            </div>
+            <div class="innovative-card" style="border: 2px solid #f43f5e;"
+                 onclick="app.join('admin', 'إدارة أغسطس')">
+                <i class="fas fa-user-shield" style="color:#f43f5e;"></i>إدارة أغسطس
+            </div>
+            <div class="innovative-card" style="border: 2px solid var(--gold); background: #fffbeb;"
+                 onclick="app.join('boss', 'شقة بن مسحل')">
+                <i class="fas fa-couch" style="color:var(--gold);"></i>شقة بن مسحل المبتكرة
+            </div>
+        </div>
+
+        <!-- صفحة الدردشة -->
+        <div id="p3" class="page">
+            <h4 id="rt-title" style="margin-bottom:5px; color: var(--light-blue);"></h4>
+            <div style="font-size: 8px; color: #94a3b8; margin-bottom: 5px;">
+                Satellite Link Active: wolfae5115111@gmail.com
+            </div>
+            <div id="chat-window"></div>
+            <div style="display:flex; gap:10px; margin-top:15px;">
+                <input type="text" id="min" placeholder="رسالة عبر القمر الصناعي..."
+                    style="flex:1; padding:15px; border-radius:15px; border: 1px solid #ddd;"
+                    onkeypress="if(event.key==='Enter') app.send()">
+                <button onclick="app.send()"
+                    style="background:var(--light-blue); color:white; width:60px;
+                           border-radius:15px; border:none; cursor:pointer;">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- صفحة الأعضاء -->
+        <div id="p4" class="page">
+            <h3 style="margin-bottom:15px;">👤 المتصلون بالعالم</h3>
+            <div id="ulist"></div>
+            <div style="margin-top: auto; padding: 15px; background: #fff1f2;
+                        border-radius: 15px; color: #e11d48; text-align: center; font-size: 12px;">
+                ⚠️ تنبيه: نظام الرسائل الخاصة "مقفل" بين الأعضاء لضمان الاحترافية.
+            </div>
+        </div>
+
+        <!-- صفحة المكالمات -->
+        <div id="p-call" class="page">
+            <div style="background:var(--dark-blue); flex:1; border-radius:30px;
+                        display:flex; flex-direction:column; align-items:center;
+                        justify-content:center; color:white; padding: 20px; text-align: center;">
+                <i class="fas fa-satellite-dish fa-5x" style="margin-bottom: 20px; color: var(--gold);"></i>
+                <h2>تنسيق المكالمات الفضائية</h2>
+                <p style="font-size: 13px; opacity: 0.8; margin-top:10px;">
+                    ID: wolfae5115111@gmail.com
+                </p>
+                <div style="display:flex; gap:25px; margin-top:40px;">
+                    <div style="background:#f43f5e; width:70px; height:70px; border-radius:50%;
+                                display:flex; align-items:center; justify-content:center; cursor:pointer;"
+                         onclick="app.navTo('p2')">
+                        <i class="fas fa-phone-slash fa-2x"></i>
+                    </div>
+                    <div style="background:#22c55e; width:70px; height:70px; border-radius:50%;
+                                display:flex; align-items:center; justify-content:center; cursor:pointer;"
+                         onclick="alert('جاري البث عبر القمر الصناعي...')">
+                        <i class="fas fa-video fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- شريط التنقل -->
+        <nav id="b-nav" style="display:none;">
+            <div onclick="app.navTo('p2')"><i class="fas fa-th-large"></i><br><span style="font-size:10px;">غرف</span></div>
+            <div onclick="app.navTo('p4')"><i class="fas fa-users"></i><br><span style="font-size:10px;">أعضاء</span></div>
+            <div onclick="app.navTo('p-call')"><i class="fas fa-satellite"></i><br><span style="font-size:10px;">القمر</span></div>
+            <div onclick="app.navTo('p3')"><i class="fas fa-comment"></i><br><span style="font-size:10px;">دردشة</span></div>
+            <div onclick="app.logout()"><i class="fas fa-power-off"></i><br><span style="font-size:10px;">خروج</span></div>
+        </nav>
+    </div>
+
+    <script>
+        // ===== إعداد Firebase =====
+        const firebaseConfig = {
+            databaseURL: "https://ala666-global-default-rtdb.firebaseio.com"
+        };
+
+        // تهيئة Firebase بشكل آمن (تجنب التهيئة المزدوجة)
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.database();
+
+        // ===== منطق التطبيق =====
+        const app = {
+            me: "",
+            room: "r1",
+            email: "wolfae5115111@gmail.com",
+            chatListener: null,   // مرجع المستمع الحالي للدردشة
+            usersListener: null,  // مرجع مستمع الأعضاء
+
+            // إنشاء تأثير المطر
+            init() {
+                const c = document.getElementById('rain-container');
+                for (let i = 0; i < 45; i++) {
+                    let d = document.createElement('div');
+                    d.className = 'drop';
+                    d.style.left = Math.random() * 100 + 'vw';
+                    d.style.top = -(Math.random() * 100) + 'px';
+                    d.style.animationDuration = (0.4 + Math.random()) + 's';
+                    d.style.animationDelay = (Math.random() * 2) + 's';
+                    c.appendChild(d);
+                }
+                this.watchConnection();
+            },
+
+            // مراقبة حالة الاتصال بـ Firebase
+            watchConnection() {
+                const connRef = db.ref('.info/connected');
+                const indicator = document.getElementById('sat-indicator');
+                connRef.on('value', (snap) => {
+                    if (snap.val() === true) {
+                        indicator.innerHTML = '<i class="fas fa-signal"></i> متصل بالأقمار الصناعية';
+                        indicator.className = 'sat-status';
+                        this.showStatus('✅ متصل بالشبكة', false);
+                    } else {
+                        indicator.innerHTML = '<i class="fas fa-signal" style="opacity:0.3"></i> جاري إعادة الاتصال...';
+                        indicator.className = 'sat-status offline';
+                        this.showStatus('⚠️ انقطع الاتصال، جاري إعادة المحاولة...', true);
+                    }
+                });
+            },
+
+            // عرض إشعار مؤقت
+            showStatus(msg, isError) {
+                const el = document.getElementById('conn-status');
+                el.textContent = msg;
+                el.className = 'show' + (isError ? ' error' : '');
+                setTimeout(() => { el.className = ''; }, 3000);
+            },
+
+            // التنقل بين الصفحات
+            navTo(id) {
+                document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+                document.getElementById(id).classList.add('active');
+            },
+
+            // الدخول
+            enter() {
+                const u = document.getElementById('uname').value.trim();
+                if (!u) {
+                    alert('يرجى كتابة اسمك أولاً');
+                    return;
+                }
+                this.me = u;
+                document.getElementById('b-nav').style.display = 'grid';
+                this.navTo('p2');
+                this.registerUser();
+                this.listenUsers();
+            },
+
+            // تسجيل المستخدم في Firebase مع onDisconnect للتنظيف التلقائي
+            registerUser() {
+                const userRef = db.ref('users/' + this.me);
+                userRef.set({ online: true, sat_link: this.email, joined: Date.now() });
+                // حذف المستخدم تلقائياً عند قطع الاتصال
+                userRef.onDisconnect().remove();
+            },
+
+            // الاستماع لقائمة المستخدمين المتصلين
+            listenUsers() {
+                if (this.usersListener) {
+                    db.ref('users').off('value', this.usersListener);
+                }
+                this.usersListener = db.ref('users').on('value', s => {
+                    const l = document.getElementById('ulist');
+                    l.innerHTML = "";
+                    const users = s.val();
+                    if (!users) {
+                        l.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:20px;">لا يوجد أعضاء متصلون حالياً</div>';
+                        return;
+                    }
+                    for (let name in users) {
+                        const isMe = name === this.me;
+                        l.innerHTML += `
+                            <div class="innovative-card">
+                                <i class="fas fa-user-circle" style="color:${isMe ? 'var(--light-blue)' : '#94a3b8'}; font-size:24px;"></i>
+                                <div>
+                                    <b>${name}</b> ${isMe ? '<span style="color:var(--light-blue); font-size:11px;">(أنت)</span>' : ''}
+                                    <div class="private-lock">🔒 خاص مقفل</div>
+                                </div>
+                            </div>`;
+                    }
+                });
+            },
+
+            // الانضمام لغرفة دردشة
+            join(id, name) {
+                this.room = id;
+                document.getElementById('rt-title').innerText = "📍 " + name;
+                document.getElementById('chat-window').innerHTML = "";
+                this.navTo('p3');
+                this.listenChat();
+            },
+
+            // الاستماع لرسائل الغرفة الحالية فقط (آخر 50 رسالة)
+            listenChat() {
+                // إلغاء المستمع السابق لتجنب التكرار
+                if (this.chatListener) {
+                    db.ref('global_sat').off('child_added', this.chatListener);
+                }
+                const chatRef = db.ref('global_sat')
+                    .orderByChild('r')
+                    .equalTo(this.room)
+                    .limitToLast(50);
+
+                this.chatListener = chatRef.on('child_added', s => {
+                    const m = s.val();
+                    const w = document.getElementById('chat-window');
+                    const isSent = m.u === this.me;
+                    const msgEl = document.createElement('div');
+                    msgEl.className = 'msg ' + (isSent ? 'sent' : 'received');
+                    msgEl.innerHTML = `<b>${this.escapeHtml(m.u)}:</b> ${this.escapeHtml(m.t)}`;
+                    w.appendChild(msgEl);
+                    w.scrollTop = w.scrollHeight;
+                });
+            },
+
+            // إرسال رسالة
+            send() {
+                const i = document.getElementById('min');
+                const text = i.value.trim();
+                if (!text) return;
+                if (!this.me) {
+                    alert('يرجى تسجيل الدخول أولاً');
+                    return;
+                }
+                db.ref('global_sat').push({
+                    u: this.me,
+                    t: text,
+                    r: this.room,
+                    ts: Date.now(),
+                    sat: true
+                }).catch(err => {
+                    this.showStatus('❌ فشل إرسال الرسالة: ' + err.message, true);
+                });
+                i.value = "";
+            },
+
+            // تسجيل الخروج
+            logout() {
+                if (this.me) {
+                    // إلغاء المستمعين
+                    if (this.chatListener) db.ref('global_sat').off('child_added', this.chatListener);
+                    if (this.usersListener) db.ref('users').off('value', this.usersListener);
+                    // حذف المستخدم من القائمة
+                    db.ref('users/' + this.me).remove();
+                    this.me = "";
+                }
+                document.getElementById('b-nav').style.display = 'none';
+                document.getElementById('uname').value = '';
+                this.navTo('p1');
+            },
+
+            // تنظيف HTML لمنع XSS
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.appendChild(document.createTextNode(text));
+                return div.innerHTML;
+            }
+        };
+
+        // بدء التطبيق
+        app.init();
+    </script>
+</body>
+</html>
